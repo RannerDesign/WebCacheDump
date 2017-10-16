@@ -69,7 +69,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="LockTools.vb" />
-    <Compile Include="WebCacheDumpTools.vb" />
     <Compile Include="ESE_Engine.vb" />
     <Compile Include="ESE_Tools.vb" />
     <Compile Include="Module1.vb" />

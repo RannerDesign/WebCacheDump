@@ -11,6 +11,12 @@ Module Module1
         Dim logLineStart As String = "++++" + vbTab + "WebCacheDump: "
         Console.WriteLine(logLineStart + "Start WebCacheDump")
 
+        If False Then
+            TestProgram()
+            MsgBox("Ende Testprogramm")
+            Exit Sub
+        End If
+
         Dim ese As New ESE_Engine
         Dim cacheFile As String
         Dim cacheDir As String
@@ -100,11 +106,17 @@ Module Module1
         Dim iRowContainer As Long = 2
         Dim jX As Long
         Try
-            dtContainer = ese.GetTable("Containers", False)
+            dtContainer = ese.GetTable("Containers", True)
             For Each dr In dtContainer.Select()
                 iRowContainer = iRowContainer + 1
                 For jX = 1 To jC
-                    xlSheet2.Cells(iRowContainer, jX).value = dr(CStr(xlSheet2.Cells(2, jX).value))
+                    If xlSheet2.Cells(1, jX).value = 11 Then
+                        If Not IsDBNull(dr(CStr(xlSheet2.Cells(2, jX).value))) Then
+                            xlSheet2.Cells(iRowContainer, jX).value = Byte2xlString(dr(CStr(xlSheet2.Cells(2, jX).value)))
+                        End If
+                    Else
+                        xlSheet2.Cells(iRowContainer, jX).value = dr(CStr(xlSheet2.Cells(2, jX).value))
+                    End If
                 Next
             Next
         Catch ex As Exception
@@ -182,13 +194,20 @@ Module Module1
                 End If
                 '   Load data from ESE database table to Excel tab
                 Dim dtDataTable As DataTable
+
                 Try
-                    dtDataTable = ese.GetTable(TableName, False)
+                    dtDataTable = ese.GetTable(TableName, True)
                     For Each dr In dtDataTable.Select()
                         UsedRow3 = UsedRow3 + 1
                         xlSheet3.Cells(UsedRow3, 1).value = PartNumber
                         For jX = 2 To xlSheet3.UsedRange.Columns.Count
-                            xlSheet3.Cells(UsedRow3, jX).value = dr(CStr(xlSheet3.Cells(2, jX).value))
+                            If xlSheet3.Cells(1, jX).value = 11 Then
+                                If Not IsDBNull(dr(CStr(xlSheet3.Cells(2, jX).value))) Then
+                                    xlSheet3.Cells(UsedRow3, jX).value = Byte2xlString(dr(CStr(xlSheet3.Cells(2, jX).value)))
+                                End If
+                            Else
+                                xlSheet3.Cells(UsedRow3, jX).value = dr(CStr(xlSheet3.Cells(2, jX).value))
+                            End If
                         Next
                     Next
                 Catch ex As Exception
@@ -267,6 +286,7 @@ Module Module1
     End Sub
 
     Private Function XLTableExists(workbook As Excel.Workbook, tablename As String) As Boolean
+        '   Check if Excel sheet exists in workbook
         For Each t In workbook.Sheets
             If t.name = tablename Then
                 XLTableExists = True
@@ -277,4 +297,65 @@ Module Module1
 
     End Function
 
+    Private Function Byte2xlString(ByRef ByteArray() As Byte)
+        '   Transform bytearray into string for Excel cell depending on contents
+        '   if content looks readable, converted to a String
+        '   if not into hex byte series
+        Dim n As Integer = 0
+        Dim nNull As Integer = 0
+        Dim nCtrl As Integer = 0
+        Dim nChr7 As Integer = 0
+        Dim nChr8 As Integer = 0
+        Dim lower As Integer = ByteArray.GetLowerBound(0)
+        Dim upper As Integer = ByteArray.GetUpperBound(0)
+        Dim BB As Integer
+
+        For i As Integer = lower To upper
+            n = n + 1
+            BB = ByteArray(i)
+            If BB = 0 Then
+                nNull = nNull + 1
+            ElseIf BB > 0 And BB < 32 Then
+                nCtrl = nCtrl + 1
+            ElseIf BB >= 32 And BB < 128 Then
+                nChr7 = nChr7 + 1
+            Else
+                nChr8 = nChr8 + 1
+            End If
+        Next
+
+        If n = 0 Then
+            Byte2xlString = ""
+            Exit Function
+        End If
+
+        Dim out As String = ""
+        If nChr7 / n >= 0.8 Then
+            '   If 80% is 7bit Ascii, looks like a text string
+            For i As Integer = lower To upper
+                out = out + Chr(ByteArray(i))
+            Next
+        Else
+            '   Otherwise hex dump is better
+            Dim sep As String = ""
+            For i As Integer = lower To upper
+                out = out + sep + ByteArray(i).ToString("X02")
+                sep = " "
+            Next
+        End If
+        Byte2xlString = out
+
+    End Function
+
+    Private Sub TestProgram()
+        Dim logLineStart As String = "----" + vbTab + "Testprogramm: "
+        Console.WriteLine(logLineStart + "Start Testprogramm")
+
+        Dim A As Byte() = {1, 2, 3, 4, 31, 30, 29, 28}
+        Console.WriteLine(Byte2xlString(A))
+
+        Dim B As Byte() = {40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 200}
+        Console.WriteLine(Byte2xlString(B))
+
+    End Sub
 End Module
