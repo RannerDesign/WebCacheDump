@@ -8,14 +8,11 @@ Module Module1
         '   Dump content of WebCacheV01.dat into Excel workbook suitable for further analysis
         '
         Dim debugMode As Boolean = True
+        '   This line needs to be changed to False, if the active WebCache shall be dumped
+        '   for test purposes of this program a copy of the folder WebCache has been created in WebCacheTest
+
         Dim logLineStart As String = "++++" + vbTab + "WebCacheDump: "
         Console.WriteLine(logLineStart + "Start WebCacheDump")
-
-        If False Then
-            TestProgram()
-            MsgBox("Ende Testprogramm")
-            Exit Sub
-        End If
 
         Dim ese As New ESE_Engine
         Dim cacheFile As String
@@ -279,7 +276,15 @@ Module Module1
                 End Try
             End If
             '   Adjust all column widths
+            xlSheet3.Cells.VerticalAlignment = Microsoft.Office.Interop.Excel.Constants.xlCenter
+            Dim MaxColumnWidth As Integer = 80
             xlSheet3.Columns.EntireColumn.AutoFit()
+            For iColumn As Integer = 1 To nCols
+                If xlSheet3.Columns(iColumn).ColumnWidth > MaxColumnWidth Then
+                    xlSheet3.Columns(iColumn).ColumnWidth = MaxColumnWidth
+                    xlSheet3.Columns(iColumn).WrapText = True
+                End If
+            Next
         Next
 
         MsgBox("End WebCacheDump")
@@ -300,7 +305,7 @@ Module Module1
     Private Function Byte2xlString(ByRef ByteArray() As Byte)
         '   Transform bytearray into string for Excel cell depending on contents
         '   if content looks readable, converted to a String
-        '   if not into hex byte series
+        '   if not into hex byte series with blanks between
         Dim n As Integer = 0
         Dim nNull As Integer = 0
         Dim nCtrl As Integer = 0
@@ -347,15 +352,4 @@ Module Module1
 
     End Function
 
-    Private Sub TestProgram()
-        Dim logLineStart As String = "----" + vbTab + "Testprogramm: "
-        Console.WriteLine(logLineStart + "Start Testprogramm")
-
-        Dim A As Byte() = {1, 2, 3, 4, 31, 30, 29, 28}
-        Console.WriteLine(Byte2xlString(A))
-
-        Dim B As Byte() = {40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 200}
-        Console.WriteLine(Byte2xlString(B))
-
-    End Sub
 End Module
